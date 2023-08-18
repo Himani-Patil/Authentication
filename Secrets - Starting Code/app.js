@@ -37,31 +37,48 @@ const userSchema = new mongoose.Schema({
 /////////////////////////
 
 ///////////////////////// - Hashing
-const md5 = require("md5");
+// const md5 = require("md5");
 /////////////////////////
+
+///////////////////////// - Salting & Hashing
+const bcrypt = require("bcrypt");
+const saltRounds = 2;
+/////////////////////////
+
 
 const User = new mongoose.model("User", userSchema);
 
 app.post("/register", function(req, res){
     
-    const newUser = new User({
-        email: req.body.username, 
-        pass: md5(req.body.password)
-    });
+    bcrypt.hash(req.body.password, saltRounds, function(err, hash){
 
-    newUser.save();
-    res.render('secrets');
+        const newUser = new User({
+            email: req.body.username, 
+            pass: hash
+        });
+    
+        newUser.save();
+        res.render('secrets');
+    });
 });
 
 ///////////////////////// - login
 
 app.post("/login",function(req,res){
     let username = req.body.username;
-    let password = md5(req.body.password);
+    let password = req.body.password;
 
-    User.findOne({email: username, pass: password})
+    User.findOne({email: username})
     .then(function(foundUser){
-        res.render('secrets');
+        bcrypt.compare(password, foundUser.pass, function(err, result){
+            if(result){
+                res.render('secrets');
+            }
+            else
+            {
+                res.send("<h1>Wrong username or Passward!</h1>");
+            }
+        });
     })
     .catch(function(err){
         console.log(err);
