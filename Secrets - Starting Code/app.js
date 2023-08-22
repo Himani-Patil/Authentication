@@ -33,7 +33,8 @@ mongoose.connect("mongodb://localhost:27017/SecretsDB", {useNewUrlParser: true})
 const userSchema = new mongoose.Schema({
     email: String,
     pass: String,
-    googleId: String
+    googleId: String,
+    secret: String
 });
 
 ///////////////////////// - using cookies
@@ -103,14 +104,14 @@ app.get('/register',function(req,res){
 ///////////////////////// - using cookies
 
 app.get('/secrets',function(req,res){
-    if(req.isAuthenticated()){
-        res.render('secrets');
-    }
-    else {
-        res.redirect('/login');
-    }
+    User.find({"secret":{$ne:null}})
+    .then(function(foundUsers){
+        res.render("secrets", {userSecrets: foundUsers});
+    })
+    .catch(function(err){
+        console.log(err);
+    });
 });
-
 
 ///////////////////////// - encryption
 // const encrypt = require("mongoose-encryption");
@@ -163,6 +164,27 @@ app.get("/logout", function(req,res){
     });
 });
 
+///////////////////////// - Submit a secret
+app.get("/submit", function(req, res){
+    res.render('submit');
+});
+
+app.post("/submit", function(req, res){
+    var secret = req.body.secret;
+    console.log(req);
+
+    User.findById(req.user._id)
+    .then(function(foundUser){
+        if(foundUser){
+            foundUser.secret=secret;
+            foundUser.save();
+            res.redirect('/secrets');
+        }
+    })
+    .catch(function(err){
+        console.log(err);
+    });
+});
 /////////////////////////
 
 app.listen(3000, function(){
